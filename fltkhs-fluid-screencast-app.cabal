@@ -1,0 +1,45 @@
+name : fltkhs-fluid-screencast-app
+version : 0.0.0.1
+synopsis : Fltkhs Fluid Screencast app
+description:
+    App built during Fluid screencast.
+license : MIT
+license-file : LICENSE
+author : Aditya Siram
+build-type: Custom
+maintainer: aditya.siram@gmail.com
+homepage: http://github.com/deech/fltkhs-fluid-screencast-app
+category: UI,Graphics
+cabal-version: >= 1.24
+extra-source-files: Screencast.fl
+source-repository head
+  type: git
+  location: http://github.com/deech/fltkhs-fluid-screencast-app
+
+Flag FastCompile
+   Description: Turn off optimizations for faster compilation
+   Manual: True
+   Default: False
+
+Executable fltkhs-fluid-screencast-app
+  Main-Is: fluid-screencast-app.hs
+  Other-modules: Callbacks
+  Hs-Source-Dirs: src/
+  Build-Depends:
+    base == 4.*,
+    fltkhs >= 0.5.3.9,
+    text >= 0.2 && < 1.3
+  default-language: Haskell2010
+  ghc-Options: -Werror -threaded
+  if impl(ghc >= 7.10) && impl(ghc < 8.2) && flag(FastCompile)
+     ghc-Options: -fno-specialise -fmax-simplifier-iterations=0 -fsimplifier-phases=0
+  if impl(ghc >= 8.2)
+     ghc-Options: -O0
+  Other-Modules: ScreenCast
+  if os(windows)
+    ghc-Options: -optl-mwindows
+    ghc-Options: -pgml g++ "-optl-Wl,--whole-archive" "-optl-Wl,-Bstatic" "-optl-Wl,-lfltkc" "-optl-Wl,-Bdynamic" "-optl-Wl,--no-whole-archive"
+  if os(darwin)
+   ghc-Options: "-optl-Wl,-lfltkc"
+  if !os(darwin) && !os(windows)
+   ghc-Options: -pgml g++ "-optl-Wl,--whole-archive" "-optl-Wl,-Bstatic" "-optl-Wl,-lfltkc" "-optl-Wl,-Bdynamic" "-optl-Wl,--no-whole-archive"

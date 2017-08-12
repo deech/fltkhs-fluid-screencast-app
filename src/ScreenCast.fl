@@ -1,0 +1,120 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0304
+header_name {.h}
+code_name {.cxx}
+decl {import Callbacks} {private local
+}
+
+decl {import Data.List} {private local
+}
+
+decl {import System.Exit} {private local
+}
+
+Function {makeWindow(IO(Ref Window))} {open
+} {
+  code {numFaces <- FL.setFonts Nothing;
+let { fonts = map Font [0 .. (numFaces - 1)] };
+facesAndAttrs <- mapM FL.getFontName fonts;
+sizes <- mapM FL.getFontSizes fonts;
+let {
+  scaledSizes =
+    map
+      (
+       \\s -> case s of {
+         (FontSize 0):_ -> map FontSize [0 .. 30];
+         _ -> s;
+        }
+      )
+      sizes;
+  fontStructure = zip (map fst facesAndAttrs) (zip fonts scaledSizes)
+};} {}
+  Fl_Window mainWindow {
+    label {Screen Cast App} open selected
+    xywh {13 583 730 340} type Double color 54 resizable visible
+  } {
+    Fl_Button helloWorldButton {
+      label {Hello World}
+      xywh {255 34 150 40} box GTK_UP_BOX color 20
+    }
+    Fl_Browser fontList {
+      label {Font List:}
+      xywh {35 101 154 183} type Hold align 1
+    }
+    Fl_Browser sizeList {
+      xywh {195 101 75 183} type Hold align 1
+    }
+    Fl_Text_Editor output {
+      label output
+      xywh {280 101 415 183}
+      code0 {buffer <- textBufferNew Nothing Nothing;}
+      code1 {setBuffer output (Just buffer);}
+    }
+    Fl_Menu_Bar menubar {open
+      xywh {0 0 730 20} box BORDER_BOX color 54
+    } {
+      Submenu {} {
+        label File open
+        xywh {0 0 70 21}
+      } {
+        MenuItem open {
+          label Open
+          xywh {0 0 36 21} shortcut 0x4006f
+        }
+        MenuItem quit {
+          label Quit
+          xywh {10 10 36 21} shortcut 0x40077
+        }
+      }
+    }
+  }
+  code {let { ui = UI fontList sizeList fontStructure buffer output };
+mapM_ (add fontList) (map fst fontStructure);
+setCallback open (\\_ -> appendToBuffer buffer "Open selected!\\n");
+setCallback quit (\\_ -> exitSuccess);
+setCallback helloWorldButton (logPress ui);
+setCallback fontList (fontListCb ui);
+setCallback sizeList (sizeListCb ui);} {}
+  code {return mainWindow} {}
+}
+
+Function {logPress(UI -> Ref Button -> IO ())} {open return_type {ui button}
+} {
+  code {appendToBuffer (buffer ui) "Hello world pressed!\\n";} {}
+}
+
+Function {fontListCb(UI -> Ref Browser -> IO ())} {open return_type {ui fontBrowser}
+} {
+  code {fontName <- getText (fontList ui) =<< getValue (fontList ui);
+case (lookup fontName (fontSizeList ui)) of {
+  (Just (f, szs)) ->
+    do {
+      _ <- clear (sizeList ui);
+      case szs of {
+        [] -> return ();
+        (FontSize 0):_ -> mapM_ (add (sizeList ui) . T.pack . show) [1 .. 30];
+        szs' -> mapM_ (\\(FontSize s) -> add (sizeList ui) (T.pack (show s))) szs'
+      }
+    };
+  Nothing -> return ();
+};} {}
+}
+
+Function {sizeListCb(UI -> Ref Browser -> IO ())} {open return_type {ui browser}
+} {
+  code {(LineNumber sizeLine) <- getValue (sizeList ui);
+(LineNumber fontLine) <- getValue (fontList ui);
+if (fontLine /= 0 && sizeLine /= 0)
+  then do {
+    let {
+      (_,(font, sizes)) = (fontSizeList ui) !! (fontLine - 1);
+      size = sizes !! (sizeLine - 1);
+    };
+    setTextfont (output ui) font;
+    setTextsize (output ui) size;
+    bounds <- getRectangle (output ui);
+    resize (output ui) bounds;
+    redraw (output ui);
+  };
+  else return ()} {}
+}
